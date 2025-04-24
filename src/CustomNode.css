@@ -1,0 +1,44 @@
+/* base circle node */
+.circle-node {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #333;
+  border: 3px solid #555;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s ease;
+  position: relative;
+}
+
+/* persistent flash on alerted */
+.circle-node.flashing {
+  animation: blink 1s infinite;
+}
+
+/* highlight dependent nodes */
+.circle-node.highlighted {
+  border-color: #00aaff !important;
+}
+
+/* inner image */
+.node-image {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-bottom: 4px;
+}
+
+/* label */
+.node-label {
+  color: white;
+  font-size: 10px;
+  text-align: center;
+}
+
+@keyframes blink {
+  0%,100% { border-color: red; }
+  50% { border-color: yellow; }
+}
