@@ -1,54 +1,48 @@
-import dagre from "dagre";
-
-// a single Dagre graph instance
-const g = new dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
+import {
+  forceSimulation,
+  forceManyBody,
+  forceCenter,
+  forceLink,
+  forceCollide,
+} from "d3-force";
 
 /**
- * Tight “boxy” layout:
- *  - small nodesep/ranksep for close packing
- *  - marginx/marginy for padding
- *  - shifts so minX/minY = 0
+ * Force-directed layout using d3-force for a compact, organic graph.
+ * @param {Array} nodes - Array of node objects
+ * @param {Array} edges - Array of edge objects
+ * @returns {Object} Layouted nodes and edges
  */
-export function layoutElements(nodes, edges, direction = "LR") {
-  const nodeWidth = 100,
-    nodeHeight = 100;
+export function layoutElements(nodes, edges) {
+  // Copy nodes and edges to avoid mutating original arrays
+  const simNodes = nodes.map((n) => ({ ...n }));
+  const simLinks = edges.map((e) => ({
+    ...e,
+    source: e.source,
+    target: e.target,
+  }));
 
-  g.setGraph({
-    rankdir: direction,
-    nodesep: 10,
-    ranksep: 10,
-    marginx: 10,
-    marginy: 10000,
-  });
+  // Create the simulation
+  const simulation = forceSimulation(simNodes)
+    .force(
+      "link",
+      forceLink(simLinks)
+        .id((d) => d.id)
+        .distance(90)
+        .strength(0.2)
+    )
+    .force("charge", forceManyBody().strength(-300))
+    .force("center", forceCenter(500, 400)) // Center in a 1000x800 area
+    .force("collide", forceCollide(80)); // Prevent overlap (node radius + margin)
 
-  // register nodes/edges
-  nodes.forEach((n) =>
-    g.setNode(n.id, { width: nodeWidth, height: nodeHeight })
-  );
-  edges.forEach((e) => g.setEdge(e.source, e.target));
+  // Run the simulation synchronously for a fixed number of ticks
+  simulation.stop();
+  for (let i = 0; i < 200; ++i) simulation.tick();
 
-  dagre.layout(g);
-
-  // find min x/y
-  let minX = Infinity,
-    minY = Infinity;
-  nodes.forEach((n) => {
-    const { x, y } = g.node(n.id);
-    if (x < minX) minX = x;
-    if (y < minY) minY = y;
-  });
-
-  // apply positions with shift
-  const layoutedNodes = nodes.map((n) => {
-    const { x, y } = g.node(n.id);
-    return {
-      ...n,
-      position: {
-        x: x - minX + nodeWidth / 2,
-        y: y - minY + nodeHeight / 2,
-      },
-    };
-  });
+  // Map positions back to nodes
+  const layoutedNodes = simNodes.map((n, i) => ({
+    ...nodes[i],
+    position: { x: n.x, y: n.y },
+  }));
 
   return { nodes: layoutedNodes, edges };
 }

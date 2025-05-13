@@ -14,7 +14,13 @@
 }
 
 /* persistent flash on alerted */
-.circle-node.flashing {
+.circle-node.flashing.alert-high {
+  animation: blink-high 1s infinite;
+}
+.circle-node.flashing.alert-medium {
+  animation: blink-medium 1s infinite;
+}
+.circle-node.flashing:not(.alert-high):not(.alert-medium) {
   animation: blink 1s infinite;
 }
 
@@ -38,7 +44,20 @@
   text-align: center;
 }
 
-@keyframes blink {
+@keyframes blink-high {
   0%,100% { border-color: red; }
-  50% { border-color: yellow; }
+  50% { border-color: #ff6666; }
+}
+@keyframes blink-medium {
+  0%,100% { border-color: yellow; }
+  50% { border-color: #fff799; }
+}
+@keyframes blink {
+  0%,100% { border-color: #ff00ff; }
+  50% { border-color: #00ffff; }
+}
+
+/* highlighted-orange class */
+.circle-node.highlighted-orange {
+  border-color: orange !important;
 }

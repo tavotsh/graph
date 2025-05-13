@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 /**
  * Given an array of nodes, connect each node to
  * 1–2 random other nodes (no self-link).
- * Edges are directed, with semi-transparent arrow.
+ * Edges are directed, with very transparent arrow by default.
  */
 export function generateEdges(nodes) {
   const edges = [];
@@ -22,10 +22,10 @@ export function generateEdges(nodes) {
         target: t.id,
         markerEnd: {
           type: "arrowclosed",
-          color: "rgba(255,255,255,0.2)",
+          color: "rgba(255,255,255,0.08)",
         },
         style: {
-          stroke: "rgba(255,255,255,0.2)",
+          stroke: "rgba(255,255,255,0.08)",
           strokeWidth: 2,
         },
       });
