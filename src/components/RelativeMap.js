@@ -92,36 +92,18 @@ export default function RelativeMap() {
       return false;
     });
 
-    // Style edges based on connection type
-    return filteredEdges.map((edge) => {
-      const sourceNode = nodesWithSites.find((n) => n.id === edge.source);
-      const targetNode = nodesWithSites.find((n) => n.id === edge.target);
-
-      let edgeStyle = { ...edge.style };
-      let markerEnd = { ...edge.markerEnd };
-
-      if (
-        sourceNode &&
-        targetNode &&
-        sourceNode.data.site !== targetNode.data.site
-      ) {
-        // Cross-site connection - more prominent
-        edgeStyle.stroke = "#00aaff";
-        edgeStyle.strokeWidth = 3;
-        markerEnd.color = "#00aaff";
-      } else {
-        // Intra-site connection - subtle
-        edgeStyle.stroke = "rgba(255,255,255,0.15)";
-        edgeStyle.strokeWidth = 1.5;
-        markerEnd.color = "rgba(255,255,255,0.15)";
-      }
-
-      return {
-        ...edge,
-        style: edgeStyle,
-        markerEnd,
-      };
-    });
+    // Apply default transparent styling (matching FullMap behavior)
+    return filteredEdges.map((edge) => ({
+      ...edge,
+      markerEnd: {
+        type: "arrowclosed",
+        color: "rgba(255,255,255,0.08)",
+      },
+      style: {
+        stroke: "rgba(255,255,255,0.08)",
+        strokeWidth: 2,
+      },
+    }));
   }, [rawEdges, nodesWithSites]);
 
   // 6. React Flow state
@@ -220,7 +202,7 @@ export default function RelativeMap() {
             return e;
           }
 
-          let edgeHighlightColor = e.style?.stroke || "rgba(255,255,255,0.15)";
+          let edgeHighlightColor = e.style?.stroke || "rgba(255,255,255,0.08)";
 
           if (persistentDimNodeId && affectedEdgeIds.includes(e.id)) {
             edgeHighlightColor = highlightColor;
