@@ -43,10 +43,16 @@ export default function CustomNode({ data }) {
   if (data.alertLevel === "High") alertClass = "alert-high";
   else if (data.alertLevel === "Medium") alertClass = "alert-medium";
 
-  // All highlighted nodes are orange
+  // Determine highlight class - alerted nodes keep their alert colors
   let highlightClass = "";
   if (data.highlighted) {
-    highlightClass = "highlighted-orange";
+    if (data.alertLevel === "High") {
+      highlightClass = "highlighted-high";
+    } else if (data.alertLevel === "Medium") {
+      highlightClass = "highlighted-medium";
+    } else {
+      highlightClass = "highlighted-orange";
+    }
   }
 
   // Dimmed class for unconnected nodes

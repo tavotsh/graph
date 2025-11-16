@@ -72,9 +72,17 @@
   }
 }
 
-/* highlighted-orange class */
+/* highlighted classes - use box-shadow to preserve alert animations */
 .circle-node.highlighted-orange {
-  border-color: orange !important;
+  box-shadow: 0 0 0 3px rgba(255, 165, 0, 0.8);
+}
+
+.circle-node.highlighted-high {
+  box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.8);
+}
+
+.circle-node.highlighted-medium {
+  box-shadow: 0 0 0 3px rgba(255, 255, 0, 0.8);
 }
 
 /* dimmed class for unconnected nodes */
