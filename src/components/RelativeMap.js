@@ -202,7 +202,7 @@ export default function RelativeMap() {
             return e;
           }
 
-          let edgeHighlightColor = e.style?.stroke || "rgba(255,255,255,0.08)";
+          let edgeHighlightColor = "rgba(255,255,255,0.08)";
 
           if (persistentDimNodeId && affectedEdgeIds.includes(e.id)) {
             edgeHighlightColor = highlightColor;
