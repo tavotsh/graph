@@ -45,19 +45,39 @@
 }
 
 @keyframes blink-high {
-  0%,100% { border-color: red; }
-  50% { border-color: #ff6666; }
+  0%,
+  100% {
+    border-color: red;
+  }
+  50% {
+    border-color: #ff6666;
+  }
 }
 @keyframes blink-medium {
-  0%,100% { border-color: yellow; }
-  50% { border-color: #fff799; }
+  0%,
+  100% {
+    border-color: yellow;
+  }
+  50% {
+    border-color: #fff799;
+  }
 }
 @keyframes blink {
-  0%,100% { border-color: #ff00ff; }
-  50% { border-color: #00ffff; }
+  0%,
+  100% {
+    border-color: #ff00ff;
+  }
+  50% {
+    border-color: #00ffff;
+  }
 }
 
 /* highlighted-orange class */
 .circle-node.highlighted-orange {
   border-color: orange !important;
+}
+
+/* dimmed class for unconnected nodes */
+.circle-node.dimmed {
+  opacity: 0.1 !important;
 }

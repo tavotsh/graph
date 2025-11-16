@@ -49,6 +49,12 @@ export default function CustomNode({ data }) {
     highlightClass = "highlighted-orange";
   }
 
+  // Dimmed class for unconnected nodes
+  let dimmedClass = "";
+  if (data.dimmed) {
+    dimmedClass = "dimmed";
+  }
+
   // Tooltip content
   const tooltipContent = (
     <Paper
@@ -94,7 +100,7 @@ export default function CustomNode({ data }) {
       ref={nodeRef}
       className={`circle-node ${
         flash ? "flashing" : ""
-      } ${alertClass} ${highlightClass}`
+      } ${alertClass} ${highlightClass} ${dimmedClass}`
         .replace(/\s+/g, " ")
         .trim()}
       onClick={handleClick}
