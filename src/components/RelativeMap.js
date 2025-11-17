@@ -50,22 +50,22 @@ export default function RelativeMap() {
     // Viewport dimensions
     const viewportWidth = 1920;
     const viewportHeight = 1080;
-    
-    // Triangle positioning - equilateral triangle
+     
+    // Triangle positioning - equilateral triangle with increased spacing
     const centerX = viewportWidth / 2;
-    const margin = 150;
-    
-    // Triangle vertices positions
-    const siteATopY = margin + 150; // Top center
-    const sitesBottomY = viewportHeight - margin - 100; // Bottom row
-    
+    const margin = 200; // Increased from 150
+     
+    // Triangle vertices positions with increased separation
+    const siteATopY = margin + 100; // Top center, moved higher
+    const sitesBottomY = viewportHeight - margin - 50; // Bottom row, moved lower
+     
     // Base positions for triangle
     const triangleWidth = viewportWidth - (2 * margin);
-    
-    // Site positions in triangle
+     
+    // Site positions in triangle with increased horizontal separation
     const siteAX = centerX; // Top center
-    const siteBX = centerX - (triangleWidth * 0.3); // Bottom left
-    const siteCX = centerX + (triangleWidth * 0.3); // Bottom right
+    const siteBX = centerX - (triangleWidth * 0.4); // Bottom left, moved further left
+    const siteCX = centerX + (triangleWidth * 0.4); // Bottom right, moved further right
     
     // Group nodes by site
     const siteANodes = nodes.filter(n => n.data.site === "Site A");
