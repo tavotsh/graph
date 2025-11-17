@@ -21,18 +21,23 @@ export default function RelativeMap() {
   const rawNodes = useMemo(() => generateNodes(), []);
   const rawEdges = useMemo(() => generateEdges(rawNodes), [rawNodes]);
 
-  // 2. Distribute nodes 33/33/34 between Site A, Site B, and Cross Site
+  // 2. Distribute nodes between Site A, Site B, and Cross Site
   const nodesWithSites = useMemo(() => {
-    return rawNodes.map((node, index) => {
-      // Split into three parts: Site A, Site B, Cross Site
-      const thirdSize = Math.ceil(rawNodes.length / 3);
+    return rawNodes.map((node) => {
+      // Random assignment of nodes to sites (happens on page refresh)
+      const siteIndex = Math.floor(Math.random() * 3);
       let site;
-      if (index < thirdSize) {
-        site = "Site A";
-      } else if (index < 2 * thirdSize) {
-        site = "Site B";
-      } else {
-        site = "Cross Site";
+      switch (siteIndex) {
+        case 0:
+          site = "Site A";
+          break;
+        case 1:
+          site = "Site A";
+          break;
+        case 2:
+        default:
+          site = "Site A";
+          break;
       }
 
       return {
@@ -45,92 +50,161 @@ export default function RelativeMap() {
     });
   }, [rawNodes]);
 
-  // 3. Create layout with equilateral triangle positioning
+  // 3. Create adaptive layout based on number of occupied sites
   const createSiteLayout = (nodes) => {
     // Viewport dimensions
     const viewportWidth = 1920;
     const viewportHeight = 1080;
-     
-    // Triangle positioning - equilateral triangle with increased spacing
-    const centerX = viewportWidth / 2;
-    const margin = 200; // Increased from 150
-     
-    // Triangle vertices positions with increased separation
-    const siteATopY = margin + 100; // Top center, moved higher
-    const sitesBottomY = viewportHeight - margin - 50; // Bottom row, moved lower
-     
-    // Base positions for triangle
-    const triangleWidth = viewportWidth - (2 * margin);
-     
-    // Site positions in triangle with increased horizontal separation
-    const siteAX = centerX; // Top center
-    const siteBX = centerX - (triangleWidth * 0.4); // Bottom left, moved further left
-    const siteCX = centerX + (triangleWidth * 0.4); // Bottom right, moved further right
     
     // Group nodes by site
-    const siteANodes = nodes.filter(n => n.data.site === "Site A");
-    const siteBNodes = nodes.filter(n => n.data.site === "Site B");
-    const siteCNodes = nodes.filter(n => n.data.site === "Cross Site");
+    const siteGroups = {
+      "Site A": nodes.filter(n => n.data.site === "Site A"),
+      "Site B": nodes.filter(n => n.data.site === "Site B"),
+      "Cross Site": nodes.filter(n => n.data.site === "Cross Site")
+    };
+    
+    // Determine which sites have nodes
+    const occupiedSites = Object.entries(siteGroups)
+      .filter(([_, siteNodes]) => siteNodes.length > 0)
+      .map(([siteName, _]) => siteName);
+    
+    const numOccupiedSites = occupiedSites.length;
     
     // Node layout parameters
     const nodesPerRow = 4;
     const nodeSpacingX = 140;
     const nodeSpacingY = 160;
-
-    // Position Site A nodes
-    const positionedNodes = [...siteANodes.map((node, index) => {
-      const row = Math.floor(index / nodesPerRow);
-      const col = index % nodesPerRow;
-      const siteAOffsetX = (nodesPerRow - 1) * nodeSpacingX / 2;
-      
-      return {
-        ...node,
-        position: {
-          x: siteAX - siteAOffsetX + col * nodeSpacingX,
-          y: siteATopY + row * nodeSpacingY
-        },
-      };
-    })];
     
-    // Position Site B nodes
-    positionedNodes.push(...siteBNodes.map((node, index) => {
-      const row = Math.floor(index / nodesPerRow);
-      const col = index % nodesPerRow;
-      const siteBOffsetX = (nodesPerRow - 1) * nodeSpacingX / 2;
-      
-      return {
-        ...node,
-        position: {
-          x: siteBX - siteBOffsetX + col * nodeSpacingX,
-          y: sitesBottomY + row * nodeSpacingY
-        },
-      };
-    }));
+    let positionedNodes = [];
+    let sitePositions = {};
     
-    // Position Cross Site nodes
-    positionedNodes.push(...siteCNodes.map((node, index) => {
-      const row = Math.floor(index / nodesPerRow);
-      const col = index % nodesPerRow;
-      const siteCOffsetX = (nodesPerRow - 1) * nodeSpacingX / 2;
+    if (numOccupiedSites === 1) {
+      // Single group: Maximize use of available space while preserving title bar
+      const titleBarHeight = 160; // Space for search bar and site label
+      const bottomMargin = 80;
+      const availableHeight = viewportHeight - titleBarHeight - bottomMargin;
+      const availableWidth = viewportWidth - 200; // Side margins
       
-      return {
-        ...node,
-        position: {
-          x: siteCX - siteCOffsetX + col * nodeSpacingX,
-          y: sitesBottomY + row * nodeSpacingY
-        },
-      };
-    }));
+      const [siteName] = occupiedSites;
+      const siteNodes = siteGroups[siteName];
+      const nodeCount = siteNodes.length;
+      
+      // Dynamically calculate optimal grid layout
+      const rowsNeeded = Math.ceil(nodeCount / nodesPerRow);
+      const totalHeight = rowsNeeded * nodeSpacingY;
+      
+      // Center the entire grid in available space
+      const startY = titleBarHeight + (availableHeight - totalHeight) / 2;
+      const centerX = viewportWidth / 2;
+      
+      sitePositions[siteName] = { x: centerX, y: startY + totalHeight / 2 };
+      
+      positionedNodes = siteNodes.map((node, index) => {
+        const row = Math.floor(index / nodesPerRow);
+        const col = index % nodesPerRow;
+        const offsetX = (nodesPerRow - 1) * nodeSpacingX / 2;
+        
+        return {
+          ...node,
+          position: {
+            x: centerX - offsetX + col * nodeSpacingX,
+            y: startY + row * nodeSpacingY
+          },
+        };
+      });
+      
+    } else if (numOccupiedSites === 2) {
+      // Two groups: Left and right positioning
+      const margin = 300;
+      const leftX = margin;
+      const rightX = viewportWidth - margin;
+      const centerY = viewportHeight / 2;
+      
+      const sites = occupiedSites.sort();
+      sitePositions[sites[0]] = { x: leftX, y: centerY };
+      sitePositions[sites[1]] = { x: rightX, y: centerY };
+      
+      // Position nodes for each site
+      sites.forEach(siteName => {
+        const siteNodes = siteGroups[siteName];
+        const { x: baseX, y: baseY } = sitePositions[siteName];
+        
+        positionedNodes.push(...siteNodes.map((node, index) => {
+          const row = Math.floor(index / nodesPerRow);
+          const col = index % nodesPerRow;
+          const offsetX = (nodesPerRow - 1) * nodeSpacingX / 2;
+          
+          return {
+            ...node,
+            position: {
+              x: baseX - offsetX + col * nodeSpacingX,
+              y: baseY + row * nodeSpacingY
+            },
+          };
+        }));
+      });
+      
+    } else {
+      // Three groups: Triangle positioning
+      const centerX = viewportWidth / 2;
+      const margin = 200;
+      
+      // Triangle vertices positions
+      const siteATopY = margin + 100;
+      const sitesBottomY = viewportHeight - margin - 50;
+      
+      // Base positions for triangle
+      const triangleWidth = viewportWidth - (2 * margin);
+      
+      // Site positions in triangle
+      sitePositions["Site A"] = { x: centerX, y: siteATopY };
+      sitePositions["Site B"] = { x: centerX - (triangleWidth * 0.4), y: sitesBottomY };
+      sitePositions["Cross Site"] = { x: centerX + (triangleWidth * 0.4), y: sitesBottomY };
+      
+      // Position nodes for each site
+      Object.entries(siteGroups).forEach(([siteName, siteNodes]) => {
+        if (siteNodes.length === 0) return;
+        
+        const { x: baseX, y: baseY } = sitePositions[siteName];
+        
+        positionedNodes.push(...siteNodes.map((node, index) => {
+          const row = Math.floor(index / nodesPerRow);
+          const col = index % nodesPerRow;
+          const offsetX = (nodesPerRow - 1) * nodeSpacingX / 2;
+          
+          return {
+            ...node,
+            position: {
+              x: baseX - offsetX + col * nodeSpacingX,
+              y: baseY + row * nodeSpacingY
+            },
+          };
+        }));
+      });
+    }
     
     return positionedNodes;
   };
 
-  // 4. Apply layout to all nodes
+  // 4. Determine occupied sites for adaptive layout
+  const occupiedSites = useMemo(() => {
+    const siteGroups = {
+      "Site A": nodesWithSites.filter(n => n.data.site === "Site A"),
+      "Site B": nodesWithSites.filter(n => n.data.site === "Site B"),
+      "Cross Site": nodesWithSites.filter(n => n.data.site === "Cross Site")
+    };
+    
+    return Object.entries(siteGroups)
+      .filter(([_, siteNodes]) => siteNodes.length > 0)
+      .map(([siteName, _]) => siteName);
+  }, [nodesWithSites]);
+
+  // 5. Apply layout to all nodes
   const layoutedNodes = useMemo(() => {
     return createSiteLayout(nodesWithSites);
   }, [nodesWithSites]);
 
-  // 5. Filter edges to show cross-site connections and intra-site connections
+  // 6. Filter edges to show cross-site connections and intra-site connections
   const layoutedEdges = useMemo(() => {
     // Filter edges to only show relevant connections
     const filteredEdges = rawEdges.filter((edge) => {
@@ -164,17 +238,17 @@ export default function RelativeMap() {
     }));
   }, [rawEdges, nodesWithSites]);
 
-  // 6. React Flow state
+  // 7. React Flow state
   const [nodes, setNodes, onNodesChange] = useNodesState(layoutedNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(layoutedEdges);
 
-  // Search functionality
+  // 8. Search functionality
   const [searchText, setSearchText] = useState("");
 
-  // Persistent dimming state
+  // 9. Persistent dimming state
   const [persistentDimNodeId, setPersistentDimNodeId] = useState(null);
 
-  // 7. Filter nodes based on search text
+  // 10. Filter nodes based on search text
   const filteredNodes = useMemo(() => {
     if (!searchText.trim()) return nodes;
     return nodes.filter((node) =>
@@ -182,7 +256,7 @@ export default function RelativeMap() {
     );
   }, [nodes, searchText]);
 
-  // 8. Filter edges to only show those connected to visible nodes
+  // 11. Filter edges to only show those connected to visible nodes
   const filteredEdges = useMemo(() => {
     const visibleNodeIds = new Set(filteredNodes.map((n) => n.id));
     return edges.filter(
@@ -191,7 +265,7 @@ export default function RelativeMap() {
     );
   }, [edges, filteredNodes]);
 
-  // 9. Highlight function
+  // 12. Highlight function
   const highlight = useCallback(
     (nodeId, flag) => {
       const node = nodes.find((n) => n.id === nodeId);
@@ -285,11 +359,11 @@ export default function RelativeMap() {
     [edges, setEdges, setNodes, nodes, filteredNodes, persistentDimNodeId]
   );
 
-  // 10. Tooltip states
+  // 13. Tooltip states
   const [hoveredNodeId, setHoveredNodeId] = useState(null);
   const [clickedNodeId, setClickedNodeId] = useState(null);
 
-  // 11. Event handlers
+  // 14. Event handlers
   const handleNodeMouseEnter = useCallback(
     (nodeId) => {
       const node = filteredNodes.find((n) => n.id === nodeId);
@@ -333,7 +407,7 @@ export default function RelativeMap() {
     [highlight]
   );
 
-  // 12. Pass props to each node
+  // 15. Pass props to each node
   const nodesWithTooltip = filteredNodes.map((n) => ({
     ...n,
     data: {
@@ -404,72 +478,83 @@ export default function RelativeMap() {
         />
       </Box>
 
-      {/* Site Labels - positioned according to triangle layout */}
-      <Box
-        sx={{
-          position: "absolute",
-          top: 80, // Above Site A
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 1000,
-          textAlign: "center",
-        }}
-      >
-        <Typography
-          variant="h5"
-          sx={{
-            color: "#ff4444",
-            fontWeight: "bold",
-            textShadow: "0 0 10px #ff444480",
-          }}
-        >
-          Site A
-        </Typography>
-      </Box>
-
-      <Box
-        sx={{
-          position: "absolute",
-          bottom: 80, // Below Site B
-          left: "25%", // Positioned over Site B area
-          transform: "translateX(-50%)",
-          zIndex: 1000,
-          textAlign: "center",
-        }}
-      >
-        <Typography
-          variant="h5"
-          sx={{
-            color: "#ffff44",
-            fontWeight: "bold",
-            textShadow: "0 0 10px #ffff4480",
-          }}
-        >
-          Site B
-        </Typography>
-      </Box>
-
-      <Box
-        sx={{
-          position: "absolute",
-          bottom: 80, // Below Cross Site
-          right: "25%", // Positioned over Cross Site area
-          transform: "translateX(50%)",
-          zIndex: 1000,
-          textAlign: "center",
-        }}
-      >
-        <Typography
-          variant="h5"
-          sx={{
-            color: "#44ff44",
-            fontWeight: "bold",
-            textShadow: "0 0 10px #44ff4480",
-          }}
-        >
-          Cross Site
-        </Typography>
-      </Box>
+      {/* Adaptive Site Labels - only show for occupied sites */}
+      {occupiedSites.map((siteName) => {
+        const siteColors = {
+          "Site A": { color: "#ff4444", shadow: "#ff444480", position: "top" },
+          "Site B": { color: "#ffff44", shadow: "#ffff4480", position: "bottom-left" },
+          "Cross Site": { color: "#44ff44", shadow: "#44ff4480", position: "bottom-right" }
+        };
+        
+        const siteStyle = siteColors[siteName];
+        
+        let labelStyle = {};
+        if (occupiedSites.length === 1) {
+          // Single site: center
+          labelStyle = {
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+          };
+        } else if (occupiedSites.length === 2) {
+          // Two sites: left and right
+          const sortedSites = [...occupiedSites].sort();
+          const isFirst = sortedSites[0] === siteName;
+          labelStyle = {
+            top: "50%",
+            left: isFirst ? "25%" : "75%",
+            transform: "translate(-50%, -50%)",
+          };
+        } else {
+          // Three sites: triangle layout
+          switch (siteName) {
+            case "Site A":
+              labelStyle = {
+                top: 80,
+                left: "50%",
+                transform: "translateX(-50%)",
+              };
+              break;
+            case "Site B":
+              labelStyle = {
+                bottom: 80,
+                left: "25%",
+                transform: "translateX(-50%)",
+              };
+              break;
+            case "Cross Site":
+              labelStyle = {
+                bottom: 80,
+                right: "25%",
+                transform: "translateX(50%)",
+              };
+              break;
+          }
+        }
+        
+        return (
+          <Box
+            key={siteName}
+            sx={{
+              position: "absolute",
+              zIndex: 1000,
+              textAlign: "center",
+              ...labelStyle,
+            }}
+          >
+            <Typography
+              variant="h5"
+              sx={{
+                color: siteStyle.color,
+                fontWeight: "bold",
+                textShadow: `0 0 10px ${siteStyle.shadow}`,
+              }}
+            >
+              {siteName}
+            </Typography>
+          </Box>
+        );
+      })}
 
       <ReactFlow
         nodes={nodesWithTooltip}
@@ -489,10 +574,12 @@ export default function RelativeMap() {
         <Background color="#444" gap={16} />
         <MiniMap
           nodeColor={(node) => {
-            if (node.data.site === "Site A") return "#ff4444";
-            if (node.data.site === "Site B") return "#ffff44";
-            if (node.data.site === "Cross Site") return "#44ff44";
-            return "#666";
+            const siteColors = {
+              "Site A": "#ff4444",
+              "Site B": "#ffff44",
+              "Cross Site": "#44ff44"
+            };
+            return siteColors[node.data.site] || "#666";
           }}
           maskColor="rgba(18, 18, 18, 0.8)"
         />
