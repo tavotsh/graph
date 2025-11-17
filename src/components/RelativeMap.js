@@ -13,6 +13,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import CustomNode from "../CustomNode";
 import { generateNodes } from "../nodes";
 import { generateEdges } from "../edges";
+import { layoutElements } from "../layout";
 
 const nodeTypes = { custom: CustomNode };
 
@@ -32,11 +33,11 @@ export default function RelativeMap() {
           site = "Site A";
           break;
         case 1:
-          site = "Site A";
+          site = "Site B";
           break;
         case 2:
         default:
-          site = "Site A";
+          site = "Cross Site";
           break;
       }
 
@@ -79,36 +80,56 @@ export default function RelativeMap() {
     let sitePositions = {};
     
     if (numOccupiedSites === 1) {
-      // Single group: Maximize use of available space while preserving title bar
+      // Single group: Use force-directed layout like FullMap while preserving title bar
       const titleBarHeight = 160; // Space for search bar and site label
       const bottomMargin = 80;
-      const availableHeight = viewportHeight - titleBarHeight - bottomMargin;
-      const availableWidth = viewportWidth - 200; // Side margins
       
       const [siteName] = occupiedSites;
       const siteNodes = siteGroups[siteName];
-      const nodeCount = siteNodes.length;
       
-      // Dynamically calculate optimal grid layout
-      const rowsNeeded = Math.ceil(nodeCount / nodesPerRow);
-      const totalHeight = rowsNeeded * nodeSpacingY;
+      // Filter edges for this site only
+      const siteEdges = rawEdges.filter(edge => {
+        const sourceNode = siteNodes.find(n => n.id === edge.source);
+        const targetNode = siteNodes.find(n => n.id === edge.target);
+        return sourceNode && targetNode;
+      });
       
-      // Center the entire grid in available space
-      const startY = titleBarHeight + (availableHeight - totalHeight) / 2;
+      // Use force-directed layout for natural node distribution
+      const { nodes: layoutedSingleNodes } = layoutElements(siteNodes, siteEdges);
+      
+      // Calculate the bounds of the layouted nodes
+      let minX = Math.min(...layoutedSingleNodes.map(n => n.position.x));
+      let maxX = Math.max(...layoutedSingleNodes.map(n => n.position.x));
+      let minY = Math.min(...layoutedSingleNodes.map(n => n.position.y));
+      let maxY = Math.max(...layoutedSingleNodes.map(n => n.position.y));
+      
+      // Scale and position to fit available space while preserving title bar
+      const availableHeight = viewportHeight - titleBarHeight - bottomMargin;
+      const availableWidth = viewportWidth - 200; // Side margins
+      
+      const layoutWidth = maxX - minX;
+      const layoutHeight = maxY - minY;
+      
+      const scaleX = availableWidth / layoutWidth;
+      const scaleY = availableHeight / layoutHeight;
+      const scale = Math.min(scaleX, scaleY, 1); // Don't scale up, only down
+      
+      const scaledWidth = layoutWidth * scale;
+      const scaledHeight = layoutHeight * scale;
+      
       const centerX = viewportWidth / 2;
+      const startY = titleBarHeight + (availableHeight - scaledHeight) / 2;
+      const centerY = startY + scaledHeight / 2;
       
-      sitePositions[siteName] = { x: centerX, y: startY + totalHeight / 2 };
-      
-      positionedNodes = siteNodes.map((node, index) => {
-        const row = Math.floor(index / nodesPerRow);
-        const col = index % nodesPerRow;
-        const offsetX = (nodesPerRow - 1) * nodeSpacingX / 2;
+      positionedNodes = layoutedSingleNodes.map(node => {
+        const scaledX = (node.position.x - minX) * scale;
+        const scaledY = (node.position.y - minY) * scale;
         
         return {
           ...node,
           position: {
-            x: centerX - offsetX + col * nodeSpacingX,
-            y: startY + row * nodeSpacingY
+            x: centerX - scaledWidth / 2 + scaledX,
+            y: startY + scaledY
           },
         };
       });
