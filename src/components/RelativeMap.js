@@ -21,11 +21,19 @@ export default function RelativeMap() {
   const rawNodes = useMemo(() => generateNodes(), []);
   const rawEdges = useMemo(() => generateEdges(rawNodes), [rawNodes]);
 
-  // 2. Distribute nodes 50/50 between Site A and Site B
+  // 2. Distribute nodes 33/33/34 between Site A, Site B, and Cross Site
   const nodesWithSites = useMemo(() => {
     return rawNodes.map((node, index) => {
-      // Split exactly in half
-      const site = index < rawNodes.length / 2 ? "Site A" : "Site B";
+      // Split into three parts: Site A, Site B, Cross Site
+      const thirdSize = Math.ceil(rawNodes.length / 3);
+      let site;
+      if (index < thirdSize) {
+        site = "Site A";
+      } else if (index < 2 * thirdSize) {
+        site = "Site B";
+      } else {
+        site = "Cross Site";
+      }
 
       return {
         ...node,
@@ -37,34 +45,84 @@ export default function RelativeMap() {
     });
   }, [rawNodes]);
 
-  // 3. Create layout with Site A on left, Site B on right
+  // 3. Create layout with equilateral triangle positioning
   const createSiteLayout = (nodes) => {
-    const siteWidth = 600; // Width for each site
-    const siteHeight = 600; // Height for the entire graph
-    const margin = 50;
-    const nodesPerRow = 8;
-    const nodeSpacingX = 120;
-    const nodeSpacingY = 140;
+    // Viewport dimensions
+    const viewportWidth = 1920;
+    const viewportHeight = 1080;
+    
+    // Triangle positioning - equilateral triangle
+    const centerX = viewportWidth / 2;
+    const margin = 150;
+    
+    // Triangle vertices positions
+    const siteATopY = margin + 150; // Top center
+    const sitesBottomY = viewportHeight - margin - 100; // Bottom row
+    
+    // Base positions for triangle
+    const triangleWidth = viewportWidth - (2 * margin);
+    
+    // Site positions in triangle
+    const siteAX = centerX; // Top center
+    const siteBX = centerX - (triangleWidth * 0.3); // Bottom left
+    const siteCX = centerX + (triangleWidth * 0.3); // Bottom right
+    
+    // Group nodes by site
+    const siteANodes = nodes.filter(n => n.data.site === "Site A");
+    const siteBNodes = nodes.filter(n => n.data.site === "Site B");
+    const siteCNodes = nodes.filter(n => n.data.site === "Cross Site");
+    
+    // Node layout parameters
+    const nodesPerRow = 4;
+    const nodeSpacingX = 140;
+    const nodeSpacingY = 160;
 
-    return nodes.map((node, index) => {
+    // Position Site A nodes
+    const positionedNodes = [...siteANodes.map((node, index) => {
       const row = Math.floor(index / nodesPerRow);
       const col = index % nodesPerRow;
-
-      // Calculate position based on which site
-      let x, y;
-      if (node.data.site === "Site A") {
-        x = margin + col * nodeSpacingX;
-        y = margin + row * nodeSpacingY;
-      } else {
-        x = siteWidth + margin + col * nodeSpacingX;
-        y = margin + row * nodeSpacingY;
-      }
-
+      const siteAOffsetX = (nodesPerRow - 1) * nodeSpacingX / 2;
+      
       return {
         ...node,
-        position: { x, y },
+        position: {
+          x: siteAX - siteAOffsetX + col * nodeSpacingX,
+          y: siteATopY + row * nodeSpacingY
+        },
       };
-    });
+    })];
+    
+    // Position Site B nodes
+    positionedNodes.push(...siteBNodes.map((node, index) => {
+      const row = Math.floor(index / nodesPerRow);
+      const col = index % nodesPerRow;
+      const siteBOffsetX = (nodesPerRow - 1) * nodeSpacingX / 2;
+      
+      return {
+        ...node,
+        position: {
+          x: siteBX - siteBOffsetX + col * nodeSpacingX,
+          y: sitesBottomY + row * nodeSpacingY
+        },
+      };
+    }));
+    
+    // Position Cross Site nodes
+    positionedNodes.push(...siteCNodes.map((node, index) => {
+      const row = Math.floor(index / nodesPerRow);
+      const col = index % nodesPerRow;
+      const siteCOffsetX = (nodesPerRow - 1) * nodeSpacingX / 2;
+      
+      return {
+        ...node,
+        position: {
+          x: siteCX - siteCOffsetX + col * nodeSpacingX,
+          y: sitesBottomY + row * nodeSpacingY
+        },
+      };
+    }));
+    
+    return positionedNodes;
   };
 
   // 4. Apply layout to all nodes
@@ -346,12 +404,13 @@ export default function RelativeMap() {
         />
       </Box>
 
-      {/* Site Labels */}
+      {/* Site Labels - positioned according to triangle layout */}
       <Box
         sx={{
           position: "absolute",
-          top: 140,
-          left: 200,
+          top: 80, // Above Site A
+          left: "50%",
+          transform: "translateX(-50%)",
           zIndex: 1000,
           textAlign: "center",
         }}
@@ -371,8 +430,9 @@ export default function RelativeMap() {
       <Box
         sx={{
           position: "absolute",
-          top: 140,
-          right: 200,
+          bottom: 80, // Below Site B
+          left: "25%", // Positioned over Site B area
+          transform: "translateX(-50%)",
           zIndex: 1000,
           textAlign: "center",
         }}
@@ -389,20 +449,27 @@ export default function RelativeMap() {
         </Typography>
       </Box>
 
-      {/* Central Divider */}
       <Box
         sx={{
           position: "absolute",
-          top: 180,
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: 2,
-          height: "70%",
-          bgcolor:
-            "linear-gradient(to bottom, transparent, #00aaff, transparent)",
-          zIndex: 100,
+          bottom: 80, // Below Cross Site
+          right: "25%", // Positioned over Cross Site area
+          transform: "translateX(50%)",
+          zIndex: 1000,
+          textAlign: "center",
         }}
-      />
+      >
+        <Typography
+          variant="h5"
+          sx={{
+            color: "#44ff44",
+            fontWeight: "bold",
+            textShadow: "0 0 10px #44ff4480",
+          }}
+        >
+          Cross Site
+        </Typography>
+      </Box>
 
       <ReactFlow
         nodes={nodesWithTooltip}
@@ -424,6 +491,7 @@ export default function RelativeMap() {
           nodeColor={(node) => {
             if (node.data.site === "Site A") return "#ff4444";
             if (node.data.site === "Site B") return "#ffff44";
+            if (node.data.site === "Cross Site") return "#44ff44";
             return "#666";
           }}
           maskColor="rgba(18, 18, 18, 0.8)"
